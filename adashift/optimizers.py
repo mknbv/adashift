@@ -31,9 +31,10 @@ class AdaShift(Optimizer):
 
         state = self.state[p]
         if len(state) == 0:
-          state["step"] = 0
+          state["step"] = 1
           state["grad_deque"] = deque([grad], maxlen=group["keep_num"])
           state["exp_avg_sq"] = torch.zeros_like(p.data)
+          continue
 
         grad_deque, exp_avg_sq = state["grad_deque"], state["exp_avg_sq"]
         _, beta2 = group["betas"]
