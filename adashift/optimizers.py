@@ -32,7 +32,7 @@ class AdaShift(Optimizer):
         state = self.state[p]
         if len(state) == 0:
           state["step"] = 1
-          state["grad_deque"] = deque([grad], maxlen=group["keep_num"])
+          state["grad_deque"] = deque([grad.clone()], maxlen=group["keep_num"])
           state["exp_avg_sq"] = torch.zeros_like(p.data)
           continue
 
@@ -42,7 +42,7 @@ class AdaShift(Optimizer):
         state["step"] += 1
         grad_apply = len(grad_deque) == group["keep_num"]
         offset_grad = grad_deque[0]
-        grad_deque.append(grad)
+        grad_deque.append(grad.clone())
         if not grad_apply:
           continue
 
