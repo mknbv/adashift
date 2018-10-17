@@ -1,5 +1,4 @@
 from collections import deque
-from math import sqrt
 
 import torch
 from torch.optim import Optimizer
@@ -49,11 +48,10 @@ class AdaShift(Optimizer):
         exp_avg = sum(weight * g for weight, g
                       in zip(group["exp_avg_weights"], grad_deque))
         reduce_func = group["reduce_func"]
-        reduced_grad_sq = reduce_func(offset_grad.mul(offset_grad))
+        reduced_grad_sq = reduce_func(offset_grad.mul_(offset_grad))
         exp_avg_sq.mul_(beta2).add_(1 - beta2, reduced_grad_sq)
-        denom = exp_avg_sq.sqrt().add_(group["eps"])
-        denom_bias_correction = 1 - beta2 ** state["step"]
+        bias_correction = 1 - beta2 ** (state["step"] - group["keep_num"])
+        denom = exp_avg_sq.div(bias_correction).sqrt_().add_(group["eps"])
 
-        step_size = group["lr"] * sqrt(denom_bias_correction)
-        p.data.addcdiv_(-step_size, exp_avg, denom)
+        p.data.addcdiv_(-group["lr"], exp_avg, denom)
     return loss
