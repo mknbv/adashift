@@ -1,6 +1,6 @@
 # Adashift
 
-Reproducing of the (AdaShift: Decorrelation and Convergence of Adaptive Learning Rate Methods)[https://openreview.net/forum?id=HkgTkhRcKQ]
+Reproducing of the [AdaShift: Decorrelation and Convergence of Adaptive Learning Rate Methods](https://openreview.net/forum?id=HkgTkhRcKQ)
 
 
 ## Experiments
@@ -16,6 +16,9 @@ Reproducing of the (AdaShift: Decorrelation and Convergence of Adaptive Learning
 
 ![LR1](/img/mnist_LR_smooth_1000.png) ![LR2](/img/mnist_LR_1000.png)
 
+**W-GAN**
+
+![wgan](/img/wgan_train_loss100.png)
 
 ## Dependencies
 
@@ -23,13 +26,13 @@ Reproducing of the (AdaShift: Decorrelation and Convergence of Adaptive Learning
 - NumPy 
 - PyTorch 0.4+
 - SciPy, Matplotlib
-- A recent NVIDIA GPU
-
+- GPU for Dl experiments
 ### References
 
-On the Convergence of Adam and Beyond 
+[On the Convergence of Adam and Beyond](https://openreview.net/forum?id=ryQu7f-RZ&utm_campaign=Revue%20newsletter&utm_medium=Newsletter&utm_source=piqcy)
 
-Adam 
+[ Adam ](https://arxiv.org/abs/1412.6980)
 
-AdaShift: Decorrelation and Convergence of Adaptive Learning Rate Methods
+
+[AdaShift: Decorrelation and Convergence of Adaptive Learning Rate Methods](https://arxiv.org/abs/1810.00143)
 
