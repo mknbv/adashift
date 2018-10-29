@@ -1,0 +1,104 @@
+\documentclass[12pt,a4paper,titlepage,fleqn]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{lipsum}
+\usepackage[footnotesize]{caption2}
+\usepackage[T2A]{fontenc}
+\usepackage[left=3cm,right=3cm,
+    top=3cm,bottom=3cm]{geometry}
+    
+\usepackage{indentfirst}
+\usepackage[colorlinks = true,
+            linkcolor = blue,
+            urlcolor  = blue,
+            citecolor = blue,
+            anchorcolor = blue]{hyperref}
+
+
+\usepackage{amsmath, amssymb, amsfonts, amsthm, mathtools}
+
+\usepackage{graphicx}
+\usepackage{wrapfig}
+\graphicspath{ {pics/} }
+\usepackage{csquotes}
+\usepackage{bibentry}
+\usepackage{url}
+\usepackage[
+    sorting=none,
+    clearlang=true,
+    backend=biber, 
+    bibencoding=utf8,
+    sortcites=true,
+]{biblatex}
+\addbibresource{literature.bib}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% PREPARE TITLE
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\title{Adam convergence}
+\author{Michael Konobeev,
+Irina Saparina,
+Taras Khakhulin}
+\date{\today}
+
+
+\begin{document}
+\maketitle
+
+\section{abstract?}
+
+\section{Introduction}
+
+Adam is a method for efficient stochastic optimization that only requires first-order gradients with little memory requirement and can solve large-scale optimization problems. The updating rule of this algorithm can be written in general form as follows \cite{DBLP:journals/corr/KingmaB14}:
+
+\begin{equation}\label{update}
+\theta_{t+1} = \theta_t -  \frac{~\alpha_t}{\sqrt{v_t}}m_t.
+\end{equation}
+ where
+ 
+\begin{itemize}
+\item  $\theta_t\!\in\!\mathbb R^n$ are parameters of loss function $f$  at timestep $t$
+\item $m_t\triangleq\phi(g_1,\dots,g_t) \in \mathbb R^n$ is a function of the historical gradients
+\item $v_t\triangleq\psi(g_1,\dots,g_t) \in \mathbb R^{n}_{+}$ is an $n$-dimension vector with non-negative elements, which adapts the learning rate for the $n$ elements in $g_t$ respectively
+\item $\alpha_t$ is the base learning rate
+\item $\frac{~\alpha_t}{\sqrt{v_t}}$ is the adaptive step size for $m_t$
+\end{itemize}
+In Adam, $m_t$ and $v_t$ are defined as the exponential moving average of $g_t$ and $g^2_t$: %the first and second moments of the gradient:
+\begin{equation}\label{adam_psi}
+\begin{aligned}
+m_t = \beta_1 m_{t-1} +(1-\beta_1)g_t ~~\mbox{and}~~
+v_t = \beta_2 v_{t-1} + (1-\beta_2) g_t^2,
+\end{aligned}
+\end{equation}
+where $\beta_1 \in [0, 1)$ and $\beta_2 \in [0, 1)$ are the exponential decay rates for $m_t$ and $v_t$, %the first and second moments, 
+respectively, with $m_0=0$ and $v_0=0$. 
+They can also be written as:
+\begin{equation}\label{adam_psi2}
+\begin{aligned}
+m_t = (1-\beta_1)\sum_{i=1}^{t}\beta_1^{t-i}g_i  ~~\mbox{and}~~
+v_t = (1-\beta_2)\sum_{i=1}^{t}\beta_2^{t-i}g_i^2.  
+\end{aligned}
+\end{equation}
+To avoid the bias in the estimation of the expected value at the initial timesteps, propose to apply bias correction to $m_t$ and $v_t$. Using $m_t$ as instance, it works as follows:
+\begin{equation}\label{adam_bias}
+\begin{aligned}
+m_t = \frac{(1-\beta_1)\sum_{i=1}^{t}\beta_1^{t-i}g_i}{(1-\beta_1)\sum_{i=1}^{t}\beta_1^{t-i}} 
+= \frac{\sum_{i=1}^{t}\beta_1^{t-i}g_i}{\sum_{i=1}^{t}\beta_1^{t-i}}  = \frac{(1-\beta_1)\sum_{i=1}^{t}\beta_1^{t-i}g_i}{1-\beta_1^t}.  
+\end{aligned}
+\end{equation}
+
+
+\section{Problem with convergence}
+
+\section{AmsGrad}
+
+\section{Adashift }
+
+\section{Experiments}
+
+\section{Conclusion }
+
+\newpage
+\printbibliography
+
+\end{document}
