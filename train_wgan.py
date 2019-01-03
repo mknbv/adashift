@@ -12,6 +12,7 @@ import torchvision.utils
 from torchvision.transforms import transforms
 
 from adashift.optimizers import AdaShift
+from wgan.inception_score import inception_score
 from wgan.logger import Logger
 from wgan.model import Generator, Discriminator
 from wgan import lipschitz, progress
@@ -78,6 +79,24 @@ def loop_data_loader(data_loader):
     while True:
         for batch,l in data_loader:
             yield batch, l
+
+
+def compute_inception_score(generator, nimages=int(30e3),
+                            generator_batch_size=128, inception_batch_size=8):
+    images = []
+    cpu = torch.device("cpu")
+    with torch.no_grad():
+      for i in range(0, nimages, generator_batch_size):
+        progress.bar(i, nimages, 'Generating images for inception score')
+        nsamples = (generator_batch_size
+                    - max(i + generator_batch_size - nimages, 0))
+        noise = torch.randn(nsamples, 128).cuda()
+        noise = Variable(noise)
+        newimages = generator(noise)
+        images.append(generator(noise).to(cpu))
+      images = torch.cat(images)
+    return inception_score(images, batch_size=inception_batch_size,
+                           resize=True, splits=10)
 
 
 def parse_args():
@@ -201,12 +220,18 @@ def main():
         logger.add_scalar(epoch, 'gen_loss', avg_gen_loss)
         logger.add_scalar(epoch, 'disc_loss', avg_disc_loss)
 
+        inception_score = compute_inception_score(generator, generator_batch_size=args.batch_size)
+        logger.add_scalar(epoch, "inception_score_mean", inception_score[0])
+        logger.add_scalar(epoch, "inception_score_std", inception_score[1])
+
         logger_disc.save()
         logger_gen.save()
         logger.save()
         # Print loss metrics for the last batch of the epoch
-        print('Epoch {:4d}: disc_loss={:8.4f}, gen_loss={:8.4f}'.format(
-            epoch, avg_disc_loss, avg_gen_loss))
+        print(f"\nepoch {epoch}:"
+              f" disc_loss={disc_loss:8.4f}"
+              f" gen_loss={gen_loss:8.4f}"
+              f" inception_score={inception_score[0]:8.4f}")
 
         # Save the discriminator weights and optimiser state
         torch.save({
