@@ -12,7 +12,6 @@ import torchvision.utils
 from torchvision.transforms import transforms
 
 from adashift.optimizers import AdaShift
-from wgan.data import Cifar10Dataset
 from wgan.logger import Logger
 from wgan.model import Generator, Discriminator
 from wgan import lipschitz, progress
@@ -137,8 +136,6 @@ def main():
     train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size,
                                               shuffle=True, num_workers=2)
 
-    # train_loader = DataLoader(Cifar10Dataset('data/cifar-10'),
-    #     args.batch_size, num_workers=4, pin_memory=True, drop_last=True)
     inf_train_data = loop_data_loader(train_loader)
 
     # Build neural network models and copy them onto the GPU
