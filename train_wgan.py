@@ -18,6 +18,9 @@ from wgan.model import Generator, Discriminator
 from wgan import lipschitz, progress
 
 
+def get_device():
+    return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 
 def calculate_disc_gradients(discriminator, generator, real_var, lipschitz_constraint):
     '''Calculate gradients and loss for the discriminator.'''
@@ -32,7 +35,7 @@ def calculate_disc_gradients(discriminator, generator, real_var, lipschitz_const
     lipschitz_constraint.prepare_discriminator()
 
     real_out = discriminator(real_var).mean()
-    real_out.backward(torch.cuda.FloatTensor([-1]))
+    real_out.backward(torch.tensor(-1., device=get_device()))
 
     # Sample Gaussian noise input for the generator
     noise = torch.randn(real_var.size(0), 128).type_as(real_var.data)
@@ -41,7 +44,7 @@ def calculate_disc_gradients(discriminator, generator, real_var, lipschitz_const
     gen_out = generator(noise)
     fake_var = Variable(gen_out.data)
     fake_out = discriminator(fake_var).mean()
-    fake_out.backward(torch.cuda.FloatTensor([1]))
+    fake_out.backward(torch.tensor(1., device=get_device()))
 
     loss_penalty = lipschitz_constraint.calculate_loss_penalty(real_var.data, fake_var.data)
 
@@ -67,7 +70,7 @@ def calculate_gen_gradients(discriminator, generator, batch_size):
 
     fake_var = generator(noise)
     fake_out = discriminator(fake_var).mean()
-    fake_out.backward(torch.cuda.FloatTensor([-1]))
+    fake_out.backward(torch.tensor(-1., device=get_device()))
 
     gen_loss = -fake_out
     return gen_loss
