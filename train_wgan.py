@@ -120,7 +120,8 @@ def parse_args():
         help='generator learning rate (default=2e-4)')
     parser.add_argument('--unimproved', default=False, action='store_true',
         help='disable gradient penalty and use weight clipping instead')
-    parser.add_argument('--optimizer', type=str, default='adam',
+    parser.add_argument('--optimizer',
+                        choices=["adam", "adashift", "amsgrad"],
                         help='optimizer for discriminator')
     parser.add_argument('--log-interval', type=int, default=10, metavar='N',
                         help='log (default=64)')
@@ -179,6 +180,7 @@ def main():
     elif args.optimizer == "amsgrad":
         optim_disc = optim.Adam(discriminator.parameters(), lr=2e-4, betas=(0, 0.999), amsgrad=True)
     else:
+        assert args.optimizer == "adam"
         optim_disc = optim.Adam(discriminator.parameters(), lr=2e-4, betas=(0, 0.999))
 
     i,j = 0, 0
