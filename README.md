@@ -18,12 +18,12 @@ Reproducing of the [AdaShift: Decorrelation and Convergence of Adaptive Learning
 
 **W-GAN**
 
-![wgan](/img/wgan_train_loss100.png)
+![wgan-loss](/img/wgan-discriminator-loss.png) ![wgan-inception-score](/img/wgan-is.png)
 
 ## Dependencies
 
 - Python 3.4+,
-- NumPy 
+- NumPy
 - PyTorch 0.4+
 - SciPy, Matplotlib
 - GPU for Dl experiments
@@ -35,4 +35,3 @@ Reproducing of the [AdaShift: Decorrelation and Convergence of Adaptive Learning
 
 
 [AdaShift: Decorrelation and Convergence of Adaptive Learning Rate Methods](https://arxiv.org/abs/1810.00143)
-

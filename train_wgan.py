@@ -12,11 +12,14 @@ import torchvision.utils
 from torchvision.transforms import transforms
 
 from adashift.optimizers import AdaShift
-from wgan.data import Cifar10Dataset
+from wgan.inception_score import inception_score
 from wgan.logger import Logger
 from wgan.model import Generator, Discriminator
 from wgan import lipschitz, progress
 
+
+def get_device():
+    return torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def calculate_disc_gradients(discriminator, generator, real_var, lipschitz_constraint):
@@ -32,7 +35,7 @@ def calculate_disc_gradients(discriminator, generator, real_var, lipschitz_const
     lipschitz_constraint.prepare_discriminator()
 
     real_out = discriminator(real_var).mean()
-    real_out.backward(torch.cuda.FloatTensor([-1]))
+    real_out.backward(torch.tensor(-1., device=get_device()))
 
     # Sample Gaussian noise input for the generator
     noise = torch.randn(real_var.size(0), 128).type_as(real_var.data)
@@ -41,7 +44,7 @@ def calculate_disc_gradients(discriminator, generator, real_var, lipschitz_const
     gen_out = generator(noise)
     fake_var = Variable(gen_out.data)
     fake_out = discriminator(fake_var).mean()
-    fake_out.backward(torch.cuda.FloatTensor([1]))
+    fake_out.backward(torch.tensor(1., device=get_device()))
 
     loss_penalty = lipschitz_constraint.calculate_loss_penalty(real_var.data, fake_var.data)
 
@@ -67,7 +70,7 @@ def calculate_gen_gradients(discriminator, generator, batch_size):
 
     fake_var = generator(noise)
     fake_out = discriminator(fake_var).mean()
-    fake_out.backward(torch.cuda.FloatTensor([-1]))
+    fake_out.backward(torch.tensor(-1., device=get_device()))
 
     gen_loss = -fake_out
     return gen_loss
@@ -79,6 +82,24 @@ def loop_data_loader(data_loader):
     while True:
         for batch,l in data_loader:
             yield batch, l
+
+
+def compute_inception_score(generator, nimages=int(30e3),
+                            generator_batch_size=128, inception_batch_size=8):
+    images = []
+    cpu = torch.device("cpu")
+    with torch.no_grad():
+      for i in range(0, nimages, generator_batch_size):
+        progress.bar(i, nimages, 'Generating images for inception score')
+        nsamples = (generator_batch_size
+                    - max(i + generator_batch_size - nimages, 0))
+        noise = torch.randn(nsamples, 128).cuda()
+        noise = Variable(noise)
+        newimages = generator(noise)
+        images.append(generator(noise).to(cpu))
+      images = torch.cat(images)
+    return inception_score(images, batch_size=inception_batch_size,
+                           resize=True, splits=10)
 
 
 def parse_args():
@@ -99,7 +120,8 @@ def parse_args():
         help='generator learning rate (default=2e-4)')
     parser.add_argument('--unimproved', default=False, action='store_true',
         help='disable gradient penalty and use weight clipping instead')
-    parser.add_argument('--optimizer', type=str, default='adam',
+    parser.add_argument('--optimizer',
+                        choices=["adam", "adashift", "amsgrad"],
                         help='optimizer for discriminator')
     parser.add_argument('--log-interval', type=int, default=10, metavar='N',
                         help='log (default=64)')
@@ -137,8 +159,6 @@ def main():
     train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size,
                                               shuffle=True, num_workers=2)
 
-    # train_loader = DataLoader(Cifar10Dataset('data/cifar-10'),
-    #     args.batch_size, num_workers=4, pin_memory=True, drop_last=True)
     inf_train_data = loop_data_loader(train_loader)
 
     # Build neural network models and copy them onto the GPU
@@ -160,6 +180,7 @@ def main():
     elif args.optimizer == "amsgrad":
         optim_disc = optim.Adam(discriminator.parameters(), lr=2e-4, betas=(0, 0.999), amsgrad=True)
     else:
+        assert args.optimizer == "adam"
         optim_disc = optim.Adam(discriminator.parameters(), lr=2e-4, betas=(0, 0.999))
 
     i,j = 0, 0
@@ -204,12 +225,18 @@ def main():
         logger.add_scalar(epoch, 'gen_loss', avg_gen_loss)
         logger.add_scalar(epoch, 'disc_loss', avg_disc_loss)
 
+        inception_score = compute_inception_score(generator, generator_batch_size=args.batch_size)
+        logger.add_scalar(epoch, "inception_score_mean", inception_score[0])
+        logger.add_scalar(epoch, "inception_score_std", inception_score[1])
+
         logger_disc.save()
         logger_gen.save()
         logger.save()
         # Print loss metrics for the last batch of the epoch
-        print('Epoch {:4d}: disc_loss={:8.4f}, gen_loss={:8.4f}'.format(
-            epoch, avg_disc_loss, avg_gen_loss))
+        print(f"\nepoch {epoch}:"
+              f" disc_loss={disc_loss:8.4f}"
+              f" gen_loss={gen_loss:8.4f}"
+              f" inception_score={inception_score[0]:8.4f}")
 
         # Save the discriminator weights and optimiser state
         torch.save({
