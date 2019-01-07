@@ -18,6 +18,8 @@ Reproducing of the [AdaShift: Decorrelation and Convergence of Adaptive Learning
 
 ![wgan-loss](/img/wgan-discriminator-loss.png) ![wgan-inception-score](/img/wgan-is.png)
 
+![fixed-gen](/img/discriminator_fixed_gen.png)
+
 **NMT**
 
 ![nmt](https://raw.githubusercontent.com/MichaelKonobeev/adashift/master/img/nmt_adam.png)
