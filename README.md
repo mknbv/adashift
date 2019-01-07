@@ -5,8 +5,6 @@ Reproducing of the [AdaShift: Decorrelation and Convergence of Adaptive Learning
 
 ## Experiments
 
-## Results
-
 **Synthetic Experiment**
 
 ![Synthetic](/img/regret_synth.png) ![Synthetic_optval](/img/opt_synth.png)
@@ -20,13 +18,18 @@ Reproducing of the [AdaShift: Decorrelation and Convergence of Adaptive Learning
 
 ![wgan-loss](/img/wgan-discriminator-loss.png) ![wgan-inception-score](/img/wgan-is.png)
 
+**NMT**
+
+![nmt](https://raw.githubusercontent.com/MichaelKonobeev/adashift/master/img/nmt_adam.png)
+
 ## Dependencies
 
 - Python 3.4+,
-- NumPy
+- NumPy, Pandas
 - PyTorch 0.4+
 - SciPy, Matplotlib
-- GPU for Dl experiments
+- OpenNMT-py for NMT
+- GPU for DL experiments
 ### References
 
 [On the Convergence of Adam and Beyond](https://openreview.net/forum?id=ryQu7f-RZ&utm_campaign=Revue%20newsletter&utm_medium=Newsletter&utm_source=piqcy)
