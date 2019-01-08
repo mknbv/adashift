@@ -24,7 +24,9 @@ def get_device():
     return torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-def calculate_disc_gradients(discriminator, generator, real_var, lipschitz_constraint):
+def calculate_disc_gradients(discriminator, generator, real_var,
+                             lipschitz_constraint,
+                             spherical_noise=False):
     '''Calculate gradients and loss for the discriminator.'''
 
     # Enable gradient calculations for discriminator parameters
@@ -143,6 +145,7 @@ def parse_args():
                         help='optimizer for discriminator')
     parser.add_argument('--log-interval', type=int, default=10, metavar='N',
                         help='log (default=64)')
+    parser.add_argument('--spherical-noise', action="store_true")
 
     args = parser.parse_args()
 
