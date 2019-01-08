@@ -1,6 +1,7 @@
 # Adashift
 
 Reproducing of the [AdaShift: Decorrelation and Convergence of Adaptive Learning Rate Methods](https://openreview.net/forum?id=HkgTkhRcKQ)
+as a part of ICLR Reproducibility Challange 2019. See our [report](https://github.com/MichaelKonobeev/adashift/tree/master/report/report.pdf).
 
 
 ## Experiments
