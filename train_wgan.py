@@ -4,6 +4,8 @@ The code borrowed from https://github.com/anibali/wgan-cifar10
 import os
 import argparse
 
+import numpy as np
+
 import torch
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
@@ -38,8 +40,14 @@ def calculate_disc_gradients(discriminator, generator, real_var, lipschitz_const
     real_out.backward(torch.tensor(-1., device=get_device()))
 
     # Sample Gaussian noise input for the generator
-    noise = torch.randn(real_var.size(0), 128).type_as(real_var.data)
-    noise = Variable(noise, volatile=True)
+    if spherical_noise:
+      noise = np.random.randn(real_var.size(0), 100)
+      noise /= np.linalg.norm(noise, axis=1, keepdims=True)
+      noise = Variable(torch.tensor(noise.astype(np.float32),
+                                    device=get_device()))
+    else:
+      noise = torch.randn(real_var.size(0), 128).type_as(real_var.data)
+      noise = Variable(noise, volatile=True)
 
     gen_out = generator(noise)
     fake_var = Variable(gen_out.data)
@@ -54,7 +62,8 @@ def calculate_disc_gradients(discriminator, generator, real_var, lipschitz_const
     return disc_loss
 
 
-def calculate_gen_gradients(discriminator, generator, batch_size):
+def calculate_gen_gradients(discriminator, generator, batch_size,
+                           spherical_noise=False):
     '''Calculate gradients and loss for the generator.'''
 
     # Disable gradient calculations for discriminator parameters
@@ -64,9 +73,15 @@ def calculate_gen_gradients(discriminator, generator, batch_size):
     # Set generator parameter gradients to zero
     generator.zero_grad()
 
-    # Sample Gaussian noise input for the generator
-    noise = torch.randn(batch_size, 128).cuda()
-    noise = Variable(noise)
+    # # Sample Gaussian noise input for the generator
+    if spherical_noise:
+      noise = np.random.randn(batch_size, 100)
+      noise /= np.linalg.norm(noise, axis=1, keepdims=True)
+      noise = Variable(torch.tensor(noise.astype(np.float32),
+                                    device=get_device()))
+    else:
+      noise = torch.randn(batch_size, 128).cuda()
+      noise = Variable(noise)
 
     fake_var = generator(noise)
     fake_out = discriminator(fake_var).mean()
@@ -208,7 +223,8 @@ def main():
                 real_var = inputs.cuda()
 
                 disc_loss = calculate_disc_gradients(
-                    discriminator, generator, real_var, lipschitz_constraint)
+                    discriminator, generator, real_var, lipschitz_constraint,
+                    spherical_noise=args.spherical_noise)
                 avg_disc_loss += disc_loss.item()
                 optim_disc.step()
                 if i % args.log_interval == 0:
@@ -217,9 +233,9 @@ def main():
 
             # Train the generator
             if optim_gen:
-              gen_loss = calculate_gen_gradients(discriminator,
-                                                 generator,
-                                                 args.batch_size)
+              gen_loss = calculate_gen_gradients(
+                  discriminator, generator, args.batch_size,
+                  spherical_noise=args.spherical_noise)
               avg_gen_loss += gen_loss.item()
               optim_gen.step()
               if j % args.log_interval == 0:
