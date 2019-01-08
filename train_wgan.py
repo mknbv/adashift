@@ -113,14 +113,17 @@ def parse_args():
     parser.add_argument('--disc-iters', type=int, default=5, metavar='N',
         help='discriminator iterations per generator iteration (default=5)')
     parser.add_argument('--batch-size', type=int, default=128, metavar='N',
-        help='input batch size (default=64)')
+        help='input batch size (default=128)')
     parser.add_argument('--disc-lr', type=float, default=2e-4, metavar='LR',
         help='discriminator learning rate (default=2e-4)')
     parser.add_argument('--gen-lr', type=float, default=2e-4, metavar='LR',
         help='generator learning rate (default=2e-4)')
     parser.add_argument('--unimproved', default=False, action='store_true',
         help='disable gradient penalty and use weight clipping instead')
-    parser.add_argument('--optimizer',
+    parser.add_argument('--generator-optimizer',
+                        choices=[None, "adam", "adashift", "amsgrad"],
+                        help="optimizer for generator")
+    parser.add_argument('--discriminator-optimizer',
                         choices=["adam", "adashift", "amsgrad"],
                         help='optimizer for discriminator')
     parser.add_argument('--log-interval', type=int, default=10, metavar='N',
@@ -131,13 +134,25 @@ def parse_args():
     return args
 
 
+def get_optimizer(name):
+  optimizers = {
+      "adashift": AdaShift,
+      "amsgrad": lambda *args, **kwargs: optim.Adam(*args, amsgrad=True,
+                                                    **kwargs),
+      "adam": optim.Adam
+  }
+  return optimizers[name]
+
+
 def main():
     '''Main entrypoint function for training.'''
 
     # Parse command-line arguments
     args = parse_args()
     fmt = {'disc_loss':'.5e', 'gen_loss':'.5e' }
-    logger_name = "wgan-train_"+args.optimizer
+    logger_name = (
+        "wgan-train_"
+        f"{args.generator_optimizer}-{args.discriminator_optimizer}")
     logger = Logger(logger_name, fmt=fmt)
     logger_disc = Logger(logger_name+"_discriminator", fmt=fmt)
     logger_gen = Logger(logger_name+"_generator", fmt=fmt)
@@ -172,16 +187,12 @@ def main():
         lipschitz_constraint = lipschitz.GradientPenalty(discriminator)
 
     # Initialise the parameter optimisers
-    optim_gen = optim.Adam(generator.parameters(), lr=2e-4, betas=(0, 0.999))
-
-    if args.optimizer == "adashift":
-        optim_disc = AdaShift(discriminator.parameters(), lr=2e-4, betas=(0, 0.999))
-
-    elif args.optimizer == "amsgrad":
-        optim_disc = optim.Adam(discriminator.parameters(), lr=2e-4, betas=(0, 0.999), amsgrad=True)
-    else:
-        assert args.optimizer == "adam"
-        optim_disc = optim.Adam(discriminator.parameters(), lr=2e-4, betas=(0, 0.999))
+    optim_gen = (
+        get_optimizer(args.generator_optimizer)(generator.parameters(),
+                                                lr=2e-4, betas=(0., 0.999))
+        if args.generator_optimizer else None)
+    optim_disc = get_optimizer(args.discriminator_optimizer)(
+        discriminator.parameters(), lr=2e-4, betas=(0., 0.999))
 
     i,j = 0, 0
     # Run the main training loop
@@ -205,12 +216,16 @@ def main():
                 i += 1
 
             # Train the generator
-            gen_loss = calculate_gen_gradients(discriminator, generator, args.batch_size)
-            avg_gen_loss += gen_loss.item()
-            optim_gen.step()
-            if j % args.log_interval == 0:
-                logger_gen.add_scalar(j, 'gen_loss', gen_loss.item())
-            j += 1
+            if optim_gen:
+              gen_loss = calculate_gen_gradients(discriminator,
+                                                 generator,
+                                                 args.batch_size)
+              avg_gen_loss += gen_loss.item()
+              optim_gen.step()
+              if j % args.log_interval == 0:
+                  logger_gen.add_scalar(j, 'gen_loss', gen_loss.item())
+                  pass
+              j += 1
 
             # # Save generated images
             # torchvision.utils.save_image((generator.last_output.data.cpu() + 1) / 2,
@@ -225,32 +240,41 @@ def main():
         logger.add_scalar(epoch, 'gen_loss', avg_gen_loss)
         logger.add_scalar(epoch, 'disc_loss', avg_disc_loss)
 
-        inception_score = compute_inception_score(generator, generator_batch_size=args.batch_size)
-        logger.add_scalar(epoch, "inception_score_mean", inception_score[0])
-        logger.add_scalar(epoch, "inception_score_std", inception_score[1])
+        if optim_gen:
+          inception_score = compute_inception_score(
+              generator, generator_batch_size=args.batch_size)
+          logger.add_scalar(epoch, "inception_score_mean", inception_score[0])
+          logger.add_scalar(epoch, "inception_score_std", inception_score[1])
 
         logger_disc.save()
-        logger_gen.save()
+        if optim_gen:
+          logger_gen.save()
         logger.save()
         # Print loss metrics for the last batch of the epoch
-        print(f"\nepoch {epoch}:"
-              f" disc_loss={disc_loss:8.4f}"
-              f" gen_loss={gen_loss:8.4f}"
-              f" inception_score={inception_score[0]:8.4f}")
+        printlog = (f"\nepoch {epoch}:"
+                    f" disc_loss={disc_loss:8.4f}")
+        if optim_gen:
+          printlog += (f" gen_loss={gen_loss:8.4f}"
+                       f" inception_score={inception_score[0]:8.4f}")
+        print(printlog)
 
         # Save the discriminator weights and optimiser state
         torch.save({
             'epoch': epoch + 1,
             'model_state': discriminator.state_dict(),
             'optim_state': optim_disc.state_dict(),
-        }, os.path.join('out',args.optimizer +  '_discriminator.pth'))
+        }, os.path.join('out',
+                        args.discriminator_optimizer +  '_discriminator.pth'))
 
         # Save the generator weights and optimiser state
-        torch.save({
+        savedict = {
             'epoch': epoch + 1,
             'model_state': generator.state_dict(),
-            'optim_state': optim_gen.state_dict(),
-        }, os.path.join('out', args.optimizer+'_generator.pth'))
+        }
+        if optim_gen:
+          savedict["optim_state"] = optim_gen
+        torch.save(savedict, os.path.join(
+            'out', args.generator_optimizer+'_generator.pth'))
 
 if __name__ == '__main__':
     main()
