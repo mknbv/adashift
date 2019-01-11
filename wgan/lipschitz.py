@@ -27,10 +27,11 @@ class GradientPenalty(LipschitzConstraint):
     Implements the penalty described in "Improved Training of Wasserstein GANs".
     '''
 
-    def __init__(self, discriminator, coefficient=10):
+    def __init__(self, discriminator, coefficient=10, max_gp=False):
         super().__init__(discriminator)
 
         self.coefficient = coefficient
+        self.max_gp = max_gp
 
     def prepare_discriminator(self):
         pass
@@ -59,9 +60,14 @@ class GradientPenalty(LipschitzConstraint):
 
         gradients = gradients.view(batch_size, -1)
 
-        gradient_penalty = self.coefficient * ((gradients.norm(2, dim=1) - 1) ** 2).mean()
-        gradient_penalty.backward()
+        if not self.max_gp:
+          gradient_penalty = ((gradients.norm(2, dim=1) - 1) ** 2).mean()
+        else:
+          gradient_penalty = torch.max(
+              torch.pow(torch.norm(gradients, 2, 1), 2))
 
+        gradient_penalty = self.coefficient * gradient_penalty
+        gradient_penalty.backward()
         return gradient_penalty
 
 class WeightClipping(LipschitzConstraint):
