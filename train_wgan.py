@@ -209,11 +209,11 @@ def main():
 
     # Initialise the parameter optimisers
     optim_gen = (
-        get_optimizer(args.generator_optimizer)(generator.parameters(),
-                                                lr=2e-4, betas=(0., 0.999))
+        get_optimizer(args.generator_optimizer)(
+            generator.parameters(), lr=args.gen_lr, betas=(0., 0.999))
         if args.generator_optimizer else None)
     optim_disc = get_optimizer(args.discriminator_optimizer)(
-        discriminator.parameters(), lr=2e-4, betas=(0., 0.999))
+        discriminator.parameters(), lr=args.disc_lr, betas=(0., 0.999))
 
     i,j = 0, 0
     # Run the main training loop
