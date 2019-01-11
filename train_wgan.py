@@ -110,7 +110,7 @@ def compute_inception_score(generator, nimages=int(30e3),
         progress.bar(i, nimages, 'Generating images for inception score')
         nsamples = (generator_batch_size
                     - max(i + generator_batch_size - nimages, 0))
-        noise = torch.randn(nsamples, 128).cuda()
+        noise = torch.randn(nsamples, generator.feats).cuda()
         noise = Variable(noise)
         newimages = generator(noise)
         images.append(generator(noise).to(cpu))
@@ -147,6 +147,7 @@ def parse_args():
                         help='log (default=64)')
     parser.add_argument('--spherical-noise', action="store_true")
     parser.add_argument('--penalty-coef', type=float, default=10.)
+    parser.add_argument('--feats', type=int, default=128)
 
     args = parser.parse_args()
 
@@ -196,8 +197,8 @@ def main():
     inf_train_data = loop_data_loader(train_loader)
 
     # Build neural network models and copy them onto the GPU
-    generator = Generator().cuda()
-    discriminator = Discriminator().cuda()
+    generator = Generator(args.feats).cuda()
+    discriminator = Discriminator(args.feats).cuda()
 
     # Select which Lipschitz constraint to use
     if args.unimproved:

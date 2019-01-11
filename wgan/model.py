@@ -47,11 +47,11 @@ class GeneratorBlock(nn.Module):
 class Generator(nn.Module):
     '''The generator model.'''
 
-    def __init__(self):
+    def __init__(self, feats=128):
         super().__init__()
 
-        feats = 128
-        self.input_linear = nn.Linear(128, 4*4*feats)
+        self.feats = feats
+        self.input_linear = nn.Linear(feats, 4*4*feats)
         self.block1 = GeneratorBlock(feats, feats, upsample=True)
         self.block2 = GeneratorBlock(feats, feats, upsample=True)
         self.block3 = GeneratorBlock(feats, feats, upsample=True)
@@ -72,7 +72,7 @@ class Generator(nn.Module):
         x = inputs[0]
 
         x = self.input_linear(x)
-        x = x.view(-1, 128, 4, 4)
+        x = x.view(-1, self.feats, 4, 4)
         x = self.block1(x)
         x = self.block2(x)
         x = self.block3(x)
@@ -125,15 +125,15 @@ class DiscriminatorBlock(nn.Module):
 class Discriminator(nn.Module):
     '''The discriminator (aka critic) model.'''
 
-    def __init__(self):
+    def __init__(self, feats):
         super().__init__()
 
-        feats = 128
+        self.feats = feats
         self.block1 = DiscriminatorBlock(3, feats, downsample=True, first=True)
         self.block2 = DiscriminatorBlock(feats, feats, downsample=True)
         self.block3 = DiscriminatorBlock(feats, feats, downsample=False)
         self.block4 = DiscriminatorBlock(feats, feats, downsample=False)
-        self.output_linear = nn.Linear(128, 1)
+        self.output_linear = nn.Linear(self.feats, 1)
 
         # Apply Xavier initialisation to the weights
         relu_gain = nninit.calculate_gain('relu')
@@ -152,7 +152,7 @@ class Discriminator(nn.Module):
         x = self.block4(x)
         x = nn.functional.relu(x, inplace=False)
         x = x.mean(-1, keepdim=False).mean(-1, keepdim=False)
-        x = x.view(-1, 128)
+        x = x.view(-1, self.feats)
         x = self.output_linear(x)
 
         return x
