@@ -145,6 +145,7 @@ def parse_args():
                         help='optimizer for discriminator')
     parser.add_argument('--log-interval', type=int, default=10, metavar='N',
                         help='log (default=64)')
+    parser.add_argument('--max-gp', action="store_true")
     parser.add_argument('--spherical-noise', action="store_true")
     parser.add_argument('--penalty-coef', type=float, default=10.)
     parser.add_argument('--feats', type=int, default=128)
@@ -205,7 +206,8 @@ def main():
         lipschitz_constraint = lipschitz.WeightClipping(discriminator)
     else:
         lipschitz_constraint = lipschitz.GradientPenalty(discriminator,
-                                                         args.penalty_coef)
+                                                         args.penalty_coef,
+                                                         max_gp=args.max_gp)
 
     # Initialise the parameter optimisers
     optim_gen = (
