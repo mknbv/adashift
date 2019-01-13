@@ -172,8 +172,8 @@ def main():
     args = parse_args()
     fmt = {'disc_loss':'.5e', 'gen_loss':'.5e' }
     logger_name = (
-        "wgan-train_"
-        f"{args.generator_optimizer}-{args.discriminator_optimizer}")
+        "wgan-train_"+
+        "{}-{}".format(str(args.generator_optimizer), str(args.discriminator_optimizer)))
     logger = Logger(logger_name, fmt=fmt)
     logger_disc = Logger(logger_name+"_discriminator", fmt=fmt)
     logger_gen = Logger(logger_name+"_generator", fmt=fmt)
@@ -275,11 +275,11 @@ def main():
           logger_gen.save()
         logger.save()
         # Print loss metrics for the last batch of the epoch
-        printlog = (f"\nepoch {epoch}:"
-                    f" disc_loss={disc_loss:8.4f}")
+        printlog = ("\nepoch {}:".format(epoch),
+                    " disc_loss={:8.4f}".format(disc_loss))
         if optim_gen:
-          printlog += (f" gen_loss={gen_loss:8.4f}"
-                       f" inception_score={inception_score[0]:8.4f}")
+          printlog += (" gen_loss={:8.4f}".format(gen_loss),
+                       " inception_score={:8.4f}".format(inception_score[0]))
         print(printlog)
 
         # Save the discriminator weights and optimiser state
